@@ -3,108 +3,856 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Art Decoder</title>
+  <title>Art Decoder Platform v2.1-Global8</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center pb-20 select-none">
   
-  <header class="w-full max-w-md py-4 flex justify-between items-center border-b border-slate-800 mb-4">
-    <h1 class="text-xl font-bold tracking-wider text-amber-400">ART DECODER</h1>
-    <span class="text-xs text-slate-400 border border-slate-700 px-2 py-1 rounded">BETA</span>
+  <!-- ヘッダー -->
+  <header class="w-full max-w-md py-3 px-4 flex justify-between items-center border-b border-slate-800 bg-slate-950/80 sticky top-0 z-30 backdrop-blur">
+    <div class="flex items-center gap-2">
+      <h1 class="text-lg font-bold tracking-wider text-amber-400">ART DECODER</h1>
+      <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">v2.1-Global8</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <select id="langSelect" class="bg-slate-900 border border-slate-700 text-amber-300 text-xs font-bold rounded-lg px-2 py-1 focus:outline-none">
+        <option value="ja">JA</option>
+        <option value="en">EN</option>
+        <option value="fr">FR</option>
+        <option value="it">IT</option>
+        <option value="de">DE</option>
+        <option value="es">ES</option>
+        <option value="ru">RU</option>
+        <option value="zh">ZH</option>
+      </select>
+      <button id="audioBadge" class="text-[10px] text-slate-400 border border-slate-800 bg-slate-900 px-2 py-1 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-600" id="badgeDot"></span>
+        <span id="badgeText">イヤホン未検出</span>
+      </button>
+    </div>
   </header>
 
-  <main class="w-full max-w-md flex-1 flex flex-col gap-4">
-    <!-- カメラ入力枠 -->
-    <div class="relative w-full aspect-[4/3] bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl overflow-hidden flex flex-col items-center justify-center">
-      <img id="preview" class="absolute inset-0 w-full h-full object-cover hidden" alt="Preview">
-      <div id="placeholder" class="flex flex-col items-center gap-2 pointer-events-none">
-        <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-        </svg>
-        <span class="text-sm text-slate-400">作品を撮影または選択</span>
-      </div>
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer">
-    </div>
-
-    <!-- アクションボタン -->
-    <button id="decodeBtn" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-      作品をデコードする
-    </button>
-
-    <!-- デコード結果カード（初期状態は非表示） -->
-    <div id="resultCard" class="hidden flex flex-col gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4 mt-2">
-      <div class="border-b border-slate-800 pb-2">
-        <h2 id="artTitle" class="text-lg font-bold text-white">作品タイトル未定</h2>
-        <p id="artMeta" class="text-xs text-slate-400">年代・作家名</p>
-      </div>
-
-      <div class="space-y-3 text-sm">
-        <div>
-          <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">01 / 物理的着眼点（筆致・視線誘導）</span>
-          <p id="focusPoint" class="text-slate-300 mt-1 leading-relaxed"></p>
-        </div>
-        <div>
-          <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">02 / 画家の文脈・制約</span>
-          <p id="contextPoint" class="text-slate-300 mt-1 leading-relaxed"></p>
-        </div>
-        <div>
-          <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">03 / 構造的対比</span>
-          <p id="contrastPoint" class="text-slate-300 mt-1 leading-relaxed"></p>
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-md flex-1 p-4 flex flex-col gap-3">
+    
+    <!-- TAB 1: スキャン -->
+    <section id="tab-scan" class="flex flex-col gap-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
+        <span class="text-xs font-bold text-amber-400 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          <span id="locSettingLabel">鑑賞ロケーション設定</span>
+        </span>
+        <div class="flex flex-col gap-2">
+          <input type="text" id="museumInput" placeholder="美術館名" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text">
+          <div class="grid grid-cols-2 gap-2">
+            <select id="exhibitTypeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+              <option value="常設展" id="optPermanent">常設展</option>
+              <option value="企画展" id="optSpecial">企画展</option>
+            </select>
+            <input type="text" id="specialExNameInput" placeholder="企画展名" class="hidden w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 select-text">
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- 写真入力 -->
+      <div class="relative w-full aspect-[4/3] bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl overflow-hidden flex flex-col items-center justify-center">
+        <img id="preview" class="absolute inset-0 w-full h-full object-cover hidden" alt="Preview">
+        
+        <div id="placeholder" class="flex flex-col items-center gap-2 pointer-events-none p-4 text-center z-10">
+          <svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span id="placeholderText" class="text-sm text-slate-400">写真を撮影または選択</span>
+          <span id="guideTipText" class="text-[10px] text-amber-400/90 bg-slate-950/80 px-2 py-0.5 rounded border border-amber-500/30">💡 作品名や銘のキャプションを端に入れると精度MAX</span>
+        </div>
+        <input type="file" id="cameraInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-20">
+      </div>
+
+      <!-- モード切替 -->
+      <div class="grid grid-cols-2 p-1 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold gap-1">
+        <button id="modeQuickBtn" class="py-2.5 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center gap-1 font-bold">
+          <span id="modeQuickText">⚡️ 要約・速聴</span>
+          <span id="modeQuickSub" class="text-[10px] opacity-80 font-mono">（約5秒）</span>
+        </button>
+        <button id="modeDeepBtn" class="py-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1 font-bold">
+          <span id="modeDeepText">🔍 詳細解読</span>
+          <span id="modeDeepSub" class="text-[10px] opacity-80 font-mono">（約12秒）</span>
+        </button>
+      </div>
+
+      <button id="decodeBtn" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all disabled:opacity-50">
+        要約をデコードする
+      </button>
+
+      <!-- 結果カード -->
+      <div id="resultCard" class="hidden flex flex-col gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div class="border-b border-slate-800 pb-2 flex justify-between items-start">
+          <div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span id="cardMuseumTag" class="text-[10px] bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono"></span>
+              <span id="cardExhibitTag" class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded"></span>
+              <span id="cardLangTag" class="text-[10px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded font-mono uppercase"></span>
+            </div>
+            <h2 id="artTitle" class="text-lg font-bold text-white mt-1 select-text"></h2>
+            <p id="artMeta" class="text-xs text-slate-400 select-text"></p>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <button id="thumbUpBtn" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
+            </button>
+            <button id="thumbDownBtn" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76 1.04m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 音声操作バー -->
+        <div id="audioGuidePanel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex flex-col gap-2">
+          <div class="flex gap-2">
+            <button id="playAudioBtn" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow active:scale-95 transition-transform">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+              <span id="playAudioBtnText">解説を聴く</span>
+            </button>
+            <button id="selectTextBtn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-700 active:scale-95 transition-transform flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+              <span id="selectTextBtnText">全選択</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="headphoneWarning" class="p-3 rounded-xl bg-slate-950/60 border border-dashed border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span id="headphoneWarningText">イヤホン接続時のみ音声利用可</span>
+          </span>
+          <span class="text-[10px] text-slate-500" id="badgeNoticeText">（右上のバッジで切替可能）</span>
+        </div>
+
+        <div id="textContainer" class="space-y-3.5 text-sm p-1 select-text leading-relaxed">
+          <div id="summaryBlock" class="hidden">
+            <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider" id="lblSummaryHead">要約オーディオガイド</span>
+            <p id="summaryPoint" class="text-slate-200 mt-1 whitespace-pre-wrap select-text"></p>
+          </div>
+
+          <div id="detailBlock" class="space-y-3.5">
+            <div>
+              <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider" id="lblFocusHead">01 / 物理的着眼点</span>
+              <p id="focusPoint" class="text-slate-200 mt-1 whitespace-pre-wrap select-text"></p>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider" id="lblContextHead">02 / 画家の文脈・制約</span>
+              <p id="contextPoint" class="text-slate-200 mt-1 whitespace-pre-wrap select-text"></p>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider" id="lblContrastHead">03 / 構造的対比</span>
+              <p id="contrastPoint" class="text-slate-200 mt-1 whitespace-pre-wrap select-text"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: 館内作品（Cloudflare D1） -->
+    <section id="tab-museum" class="hidden flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-bold text-white" id="museumTabTitle">魚拓ライブラリ（Cloudflare D1）</h2>
+        <div class="flex items-center gap-1.5">
+          <span id="museumLangFilterBadge" class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono">LANG: JA</span>
+          <span id="museumFilterBadge" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">全館</span>
+        </div>
+      </div>
+      <div id="museumArtworkList" class="flex flex-col gap-2"></div>
+    </section>
+
+    <!-- TAB 3: ランキング（Cloudflare D1） -->
+    <section id="tab-rank" class="hidden flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-bold text-white" id="rankTabTitle">人気作品ランキング</h2>
+        <span class="text-[10px] text-slate-400" id="rankTabSub">リアルタイム集計</span>
+      </div>
+      <div id="rankingList" class="flex flex-col gap-2"></div>
+    </section>
+
+    <!-- TAB 4: マイログ -->
+    <section id="tab-log" class="hidden flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-bold text-white" id="logTabTitle">鑑賞ログ履歴</h2>
+        <span id="myLogCountBadge" class="text-[10px] text-amber-400 font-mono">0 作品</span>
+      </div>
+      <div id="myLogList" class="flex flex-col gap-2"></div>
+    </section>
   </main>
 
+  <!-- ボトムナビ -->
+  <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-950/95 border-t border-slate-800 flex justify-around py-2 z-40 backdrop-blur">
+    <button class="nav-tab flex flex-col items-center gap-0.5 text-amber-400 font-bold" data-target="tab-scan">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+      <span class="text-[10px]" id="navScanText">スキャン</span>
+    </button>
+    <button class="nav-tab flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200" data-target="tab-museum">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+      <span class="text-[10px]" id="navMuseumText">館内作品</span>
+    </button>
+    <button class="nav-tab flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200" data-target="tab-rank">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+      <span class="text-[10px]" id="navRankText">ランキング</span>
+    </button>
+    <button class="nav-tab flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200" data-target="tab-log">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+      <span class="text-[10px]" id="navLogText">マイログ</span>
+    </button>
+  </nav>
+
   <script>
+    // 中継Workerエンドポイント
+    const API_BASE_URL = "https://art-decoder2-api.dan520707-7bb.workers.dev";
+
+    // 全8言語 i18n 定義辞書
+    const I18N = {
+      ja: {
+        langName: "日本語", locSetting: "鑑賞ロケーション設定", museumPh: "美術館名（例: 国立西洋美術館）",
+        permanent: "常設展", special: "企画展", specialPh: "企画展名", takePhoto: "写真を撮影または選択",
+        guideTip: "💡 作品名や銘のキャプションを端に入れると精度MAX", quickBtn: "⚡️ 要約・速聴", quickSub: "（約5秒）",
+        deepBtn: "🔍 詳細解読", deepSub: "（約12秒）", decodeQuick: "要約をデコードする", decodeDeep: "詳細をデコードする",
+        decodingQuick: "超高速解析中...", decodingDeep: "深く解析中...", anotherQuick: "別の作品を要約する",
+        anotherDeep: "別の作品を詳細デコードする", playAudio: "解説を聴く", stopAudio: "停止", selectAll: "全選択",
+        selected: "選択中", hpNotice: "イヤホン接続時のみ音声利用可", hpBadgeNotice: "（右上のバッジで切替可能）",
+        hpConnected: "イヤホン接続中", hpDisconnected: "イヤホン未検出", lblSummary: "要約オーディオガイド",
+        lblFocus: "01 / 物理的着眼点", lblContext: "02 / 画家の文脈・制約", lblContrast: "03 / 構造的対比",
+        navScan: "スキャン", navMuseum: "館内作品", navRank: "ランキング", navLog: "マイログ", allMuseums: "全館"
+      },
+      en: {
+        langName: "English", locSetting: "Viewing Location Settings", museumPh: "Museum Name (e.g. The Met, Louver)",
+        permanent: "Permanent", special: "Special Exhibition", specialPh: "Exhibition Title", takePhoto: "Take or select a photo",
+        guideTip: "💡 Include the caption/label for max accuracy", quickBtn: "⚡️ Quick Summary", quickSub: "(~5s)",
+        deepBtn: "🔍 In-depth Analysis", deepSub: "(~12s)", decodeQuick: "Decode Summary", decodeDeep: "Decode In-depth",
+        decodingQuick: "Analyzing quickly...", decodingDeep: "Analyzing deeply...", anotherQuick: "Decode another (Quick)",
+        anotherDeep: "Decode another (Deep)", playAudio: "Listen", stopAudio: "Stop", selectAll: "Select All",
+        selected: "Selected", hpNotice: "Audio enabled only with headphones", hpBadgeNotice: "(Toggle badge on top right)",
+        hpConnected: "Headphones On", hpDisconnected: "No Headphones", lblSummary: "Audio Guide Summary",
+        lblFocus: "01 / Visual & Physical Focus", lblContext: "02 / Context & Constraints", lblContrast: "03 / Structural Contrast",
+        navScan: "Scan", navMuseum: "Artworks", navRank: "Ranking", navLog: "My Log", allMuseums: "All"
+      },
+      fr: {
+        langName: "Français", locSetting: "Paramètres de localisation", museumPh: "Nom du musée (ex: Musée d'Orsay)",
+        permanent: "Collection permanente", special: "Exposition temporaire", specialPh: "Titre de l'exposition",
+        takePhoto: "Prendre ou choisir une photo", guideTip: "💡 Incluez le cartel/l'étiquette pour une précision maximale",
+        quickBtn: "⚡️ Résumé rapide", quickSub: "(~5s)", deepBtn: "🔍 Analyse détaillée", deepSub: "(~12s)",
+        decodeQuick: "Décoder le résumé", decodeDeep: "Décoder en détail", decodingQuick: "Analyse rapide...",
+        decodingDeep: "Analyse approfondie...", anotherQuick: "Résumer une autre œuvre", anotherDeep: "Analyser une autre œuvre",
+        playAudio: "Écouter", stopAudio: "Arrêter", selectAll: "Tout sélectionner", selected: "Sélectionné",
+        hpNotice: "Audio disponible uniquement avec écouteurs", hpBadgeNotice: "(Activer via le badge en haut à droite)",
+        hpConnected: "Écouteurs connectés", hpDisconnected: "Pas d'écouteurs", lblSummary: "Guide audio résumé",
+        lblFocus: "01 / Focus visuel et physique", lblContext: "02 / Contexte et contraintes", lblContrast: "03 / Contraste structurel",
+        navScan: "Scan", navMuseum: "Musée", navRank: "Classement", navLog: "Mon journal", allMuseums: "Tout"
+      },
+      it: {
+        langName: "Italiano", locSetting: "Impostazioni posizione", museumPh: "Nome del museo (es: Galleria degli Uffizi)",
+        permanent: "Collezione permanente", special: "Mostra temporanea", specialPh: "Titolo della mostra",
+        takePhoto: "Scatta o seleziona una foto", guideTip: "💡 Includi la didascalia/targhetta per la massima precisione",
+        quickBtn: "⚡️ Sintesi veloce", quickSub: "(~5s)", deepBtn: "🔍 Analisi dettagliata", deepSub: "(~12s)",
+        decodeQuick: "Decodifica sintesi", decodeDeep: "Decodifica dettagliata", decodingQuick: "Analisi rapida...",
+        decodingDeep: "Analisi approfondita...", anotherQuick: "Sintetizza un'altra opera", anotherDeep: "Analizza un'altra opera",
+        playAudio: "Ascolta", stopAudio: "Ferma", selectAll: "Seleziona tutto", selected: "Selezionato",
+        hpNotice: "Audio disponibile solo con auricolari", hpBadgeNotice: "(Attiva tramite badge in alto a destra)",
+        hpConnected: "Auricolari connessi", hpDisconnected: "Nessun auricolare", lblSummary: "Audioguida sintetica",
+        lblFocus: "01 / Aspetto visivo e fisico", lblContext: "02 / Contesto e vincoli", lblContrast: "03 / Contrasto strutturale",
+        navScan: "Scansione", navMuseum: "Opere", navRank: "Classifica", navLog: "Mio diario", allMuseums: "Tutti"
+      },
+      de: {
+        langName: "Deutsch", locSetting: "Standort-Einstellungen", museumPh: "Name des Museums (z.B. Alte Pinakothek)",
+        permanent: "Dauerausstellung", special: "Sonderausstellung", specialPh: "Titel der Ausstellung",
+        takePhoto: "Foto aufnehmen oder auswählen", guideTip: "💡 Beschriftung/Schild im Bildausschnitt erhöht Präzision",
+        quickBtn: "⚡️ Kurzübersicht", quickSub: "(~5s)", deepBtn: "🔍 Detailanalyse", deepSub: "(~12s)",
+        decodeQuick: "Kurzanalyse starten", decodeDeep: "Detailanalyse starten", decodingQuick: "Schnelle Analyse...",
+        decodingDeep: "Tiefenanalyse...", anotherQuick: "Weiteres Werk (Kurz)", anotherDeep: "Weiteres Werk (Detail)",
+        playAudio: "Anhören", stopAudio: "Stopp", selectAll: "Alles auswählen", selected: "Ausgewählt",
+        hpNotice: "Audio nur mit Kopfhörern verfügbar", hpBadgeNotice: "(Oben rechts umschalten)",
+        hpConnected: "Kopfhörer an", hpDisconnected: "Keine Kopfhörer", lblSummary: "Audio-Kurzführer",
+        lblFocus: "01 / Physischer Blickpunkt", lblContext: "02 / Kontext & Grenzen", lblContrast: "03 / Struktureller Kontrast",
+        navScan: "Scan", navMuseum: "Museum", navRank: "Rangliste", navLog: "Mein Log", allMuseums: "Alle"
+      },
+      es: {
+        langName: "Español", locSetting: "Ajustes de ubicación", museumPh: "Nombre del museo (ej: Museo del Prado)",
+        permanent: "Colección permanente", special: "Exposición temporal", specialPh: "Título de la exposición",
+        takePhoto: "Tomar o seleccionar foto", guideTip: "💡 Incluya la cartela/etiqueta para máxima precisión",
+        quickBtn: "⚡️ Resumen rápido", quickSub: "(~5s)", deepBtn: "🔍 Análisis detallado", deepSub: "(~12s)",
+        decodeQuick: "Decodificar resumen", decodeDeep: "Decodificar en detalle", decodingQuick: "Analizando rápido...",
+        decodingDeep: "Analizando a fondo...", anotherQuick: "Resumir otra obra", anotherDeep: "Analizar otra obra",
+        playAudio: "Escuchar", stopAudio: "Detener", selectAll: "Seleccionar todo", selected: "Seleccionado",
+        hpNotice: "Audio disponible solo con auriculares", hpBadgeNotice: "(Alternar insignia superior derecha)",
+        hpConnected: "Auriculares conectados", hpDisconnected: "Sin auriculares", lblSummary: "Audioguía resumen",
+        lblFocus: "01 / Enfoque visual y físico", lblContext: "02 / Contexto y limitaciones", lblContrast: "03 / Contraste estructural",
+        navScan: "Escanear", navMuseum: "Obras", navRank: "Clasificación", navLog: "Mi registro", allMuseums: "Todos"
+      },
+      ru: {
+        langName: "Русский", locSetting: "Настройки локации", museumPh: "Название музея (напр: Эрмитаж)",
+        permanent: "Постоянная экспозиция", special: "Временная выставка", specialPh: "Название выставки",
+        takePhoto: "Сделать или выбрать фото", guideTip: "💡 Захватите табличку/этикетку для точного распознавания",
+        quickBtn: "⚡️ Экспресс-обзор", quickSub: "(~5с)", deepBtn: "🔍 Подробный анализ", deepSub: "(~12с)",
+        decodeQuick: "Расшифровать обзор", decodeDeep: "Расшифровать подробно", decodingQuick: "Быстрый анализ...",
+        decodingDeep: "Глубокий анализ...", anotherQuick: "Другое произведение (кратко)", anotherDeep: "Другое произведение (подробно)",
+        playAudio: "Слушать", stopAudio: "Стоп", selectAll: "Выбрать все", selected: "Выбрано",
+        hpNotice: "Звук работает только в наушниках", hpBadgeNotice: "(Переключатель в правом верхнем углу)",
+        hpConnected: "Наушники подключены", hpDisconnected: "Нет наушников", lblSummary: "Краткий аудиогид",
+        lblFocus: "01 / Визуальный и физический фокус", lblContext: "02 / Контекスト и ограничения", lblContrast: "03 / Структурный контраст",
+        navScan: "Скан", navMuseum: "Музей", navRank: "Рейтинг", navLog: "Мой журнал", allMuseums: "Все"
+      },
+      zh: {
+        langName: "中文", locSetting: "观展地点设置", museumPh: "美术馆名称（例如: 国立西洋美术馆）",
+        permanent: "常设展", special: "特展", specialPh: "特展名称", takePhoto: "拍照或上传照片",
+        guideTip: "💡 将作品铭牌/说明标签一同拍入可获最高精度", quickBtn: "⚡️ 快速精简", quickSub: "（约5秒）",
+        deepBtn: "🔍 深度解析", deepSub: "（约12秒）", decodeQuick: "解析精简导览", decodeDeep: "深度解码",
+        decodingQuick: "超高速解析中...", decodingDeep: "深度分析中...", anotherQuick: "解析下一件（精简）",
+        anotherDeep: "深度解码下一件", playAudio: "播放解说", stopAudio: "停止", selectAll: "全选",
+        selected: "已选择", hpNotice: "仅限连接耳机时使用音频", hpBadgeNotice: "（右上角角标可直接切换）",
+        hpConnected: "耳机已连接", hpDisconnected: "耳机未检测到", lblSummary: "精简语音导览",
+        lblFocus: "01 / 物理观察重点", lblContext: "02 / 画家背景与制约", lblContrast: "03 / 结构化对比",
+        navScan: "扫描", navMuseum: "馆内作品", navRank: "排行榜", navLog: "观展日志", allMuseums: "全馆"
+      }
+    };
+
+    // 端末内マイログ専用 IndexedDB
+    const DB_NAME = 'art_decoder_global8_db';
+    let idb = null;
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('my_logs')) {
+            db.createObjectStore('my_logs', { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        req.onsuccess = () => { idb = req.result; resolve(idb); };
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbPut(storeName, data) {
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.put(data);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGetAll(storeName) {
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // 要素参照 & 状態管理
+    const langSelect = document.getElementById('langSelect');
+    const museumInput = document.getElementById('museumInput');
+    const exhibitTypeSelect = document.getElementById('exhibitTypeSelect');
+    const specialExNameInput = document.getElementById('specialExNameInput');
+
     const cameraInput = document.getElementById('cameraInput');
     const preview = document.getElementById('preview');
     const placeholder = document.getElementById('placeholder');
+    const placeholderText = document.getElementById('placeholderText');
     const decodeBtn = document.getElementById('decodeBtn');
     const resultCard = document.getElementById('resultCard');
 
-    let startTime = Date.now();
+    const modeQuickBtn = document.getElementById('modeQuickBtn');
+    const modeDeepBtn = document.getElementById('modeDeepBtn');
+    let decodeMode = 'quick';
 
-    cameraInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          preview.src = event.target.result;
-          preview.classList.remove('hidden');
-          placeholder.classList.add('hidden');
-        };
-        reader.readAsDataURL(file);
+    const summaryBlock = document.getElementById('summaryBlock');
+    const detailBlock = document.getElementById('detailBlock');
+    const summaryPoint = document.getElementById('summaryPoint');
+
+    const cardMuseumTag = document.getElementById('cardMuseumTag');
+    const cardExhibitTag = document.getElementById('cardExhibitTag');
+    const cardLangTag = document.getElementById('cardLangTag');
+    const thumbUpBtn = document.getElementById('thumbUpBtn');
+    const thumbDownBtn = document.getElementById('thumbDownBtn');
+
+    const audioGuidePanel = document.getElementById('audioGuidePanel');
+    const headphoneWarning = document.getElementById('headphoneWarning');
+    const audioBadge = document.getElementById('audioBadge');
+    const badgeDot = document.getElementById('badgeDot');
+    const badgeText = document.getElementById('badgeText');
+
+    const playAudioBtn = document.getElementById('playAudioBtn');
+    const playAudioBtnText = document.getElementById('playAudioBtnText');
+    const selectTextBtn = document.getElementById('selectTextBtn');
+    const selectTextBtnText = document.getElementById('selectTextBtnText');
+    const textContainer = document.getElementById('textContainer');
+
+    let base64Image = null;
+    let isHeadphoneConnected = false;
+    let currentArtworkId = null;
+    let currentLangCode = 'ja';
+
+    initIndexedDB();
+
+    function applyLocalization(lang) {
+      const t = I18N[lang] || I18N.ja;
+      document.getElementById('locSettingLabel').innerText = t.locSetting;
+      museumInput.placeholder = t.museumPh;
+      document.getElementById('optPermanent').innerText = t.permanent;
+      document.getElementById('optSpecial').innerText = t.special;
+      specialExNameInput.placeholder = t.specialPh;
+      placeholderText.innerText = t.takePhoto;
+      document.getElementById('guideTipText').innerText = t.guideTip;
+      document.getElementById('modeQuickText').innerText = t.quickBtn;
+      document.getElementById('modeQuickSub').innerText = t.quickSub;
+      document.getElementById('modeDeepText').innerText = t.deepBtn;
+      document.getElementById('modeDeepSub').innerText = t.deepSub;
+      decodeBtn.innerText = decodeMode === 'quick' ? t.decodeQuick : t.decodeDeep;
+      playAudioBtnText.innerText = t.playAudio;
+      selectTextBtnText.innerText = t.selectAll;
+      document.getElementById('headphoneWarningText').innerText = t.hpNotice;
+      document.getElementById('badgeNoticeText').innerText = t.hpBadgeNotice;
+      badgeText.innerText = isHeadphoneConnected ? t.hpConnected : t.hpDisconnected;
+
+      document.getElementById('lblSummaryHead').innerText = t.lblSummary;
+      document.getElementById('lblFocusHead').innerText = t.lblFocus;
+      document.getElementById('lblContextHead').innerText = t.lblContext;
+      document.getElementById('lblContrastHead').innerText = t.lblContrast;
+
+      document.getElementById('navScanText').innerText = t.navScan;
+      document.getElementById('navMuseumText').innerText = t.navMuseum;
+      document.getElementById('navRankText').innerText = t.navRank;
+      document.getElementById('navLogText').innerText = t.navLog;
+    }
+
+    langSelect.addEventListener('change', (e) => {
+      currentLangCode = e.target.value;
+      applyLocalization(currentLangCode);
+      if (!document.getElementById('tab-museum').classList.contains('hidden')) {
+        renderMuseumArtworks();
       }
     });
 
-    decodeBtn.addEventListener('click', () => {
-      decodeBtn.innerText = 'デコード中...';
+    modeQuickBtn.addEventListener('click', () => {
+      decodeMode = 'quick';
+      const t = I18N[currentLangCode] || I18N.ja;
+      modeQuickBtn.className = 'py-2.5 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center gap-1 font-bold';
+      modeDeepBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1 font-bold';
+      decodeBtn.innerText = t.decodeQuick;
+    });
+
+    modeDeepBtn.addEventListener('click', () => {
+      decodeMode = 'deep';
+      const t = I18N[currentLangCode] || I18N.ja;
+      modeDeepBtn.className = 'py-2.5 rounded-lg bg-amber-500 text-slate-950 transition-all flex items-center justify-center gap-1 font-bold';
+      modeQuickBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1 font-bold';
+      decodeBtn.innerText = t.decodeDeep;
+    });
+
+    async function checkAudioOutput() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasHeadphones = devices.some(d => {
+          const l = (d.label || '').toLowerCase();
+          return l.includes('headphone') || l.includes('headset') || l.includes('airpods') || l.includes('bluetooth') || l.includes('earphones') || l.includes('buds');
+        });
+        if (hasHeadphones) setHeadphoneState(true);
+      } catch (err) {}
+    }
+
+    function setHeadphoneState(connected) {
+      isHeadphoneConnected = connected;
+      const t = I18N[currentLangCode] || I18N.ja;
+      if (connected) {
+        badgeDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+        badgeText.innerText = t.hpConnected;
+        badgeText.className = 'text-emerald-400 font-bold';
+        if (!resultCard.classList.contains('hidden')) {
+          audioGuidePanel.classList.remove('hidden');
+          headphoneWarning.classList.add('hidden');
+        }
+      } else {
+        badgeDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-600';
+        badgeText.innerText = t.hpDisconnected;
+        badgeText.className = 'text-slate-400';
+        audioGuidePanel.classList.add('hidden');
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          playAudioBtnText.innerText = t.playAudio;
+        }
+        if (!resultCard.classList.contains('hidden')) {
+          headphoneWarning.classList.remove('hidden');
+        }
+      }
+    }
+
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', checkAudioOutput);
+    }
+    checkAudioOutput();
+    audioBadge.addEventListener('click', () => setHeadphoneState(!isHeadphoneConnected));
+
+    exhibitTypeSelect.addEventListener('change', (e) => {
+      if (e.target.value === '企画展') specialExNameInput.classList.remove('hidden');
+      else specialExNameInput.classList.add('hidden');
+    });
+
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+        document.getElementById(targetId).classList.remove('hidden');
+
+        document.querySelectorAll('.nav-tab').forEach(t => {
+          t.className = 'nav-tab flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200';
+          t.querySelector('span').classList.remove('font-bold');
+        });
+        btn.className = 'nav-tab flex flex-col items-center gap-0.5 text-amber-400';
+        btn.querySelector('span').classList.add('font-bold');
+
+        if (targetId === 'tab-museum') renderMuseumArtworks();
+        if (targetId === 'tab-rank') renderRanking();
+        if (targetId === 'tab-log') renderMyLogs();
+      });
+    });
+
+    function compressImage(file, maxDimension = 800, quality = 0.65) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > maxDimension) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              }
+            } else {
+              if (height > maxDimension) {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    cameraInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      placeholderText.innerText = '...';
+      const compressedDataUrl = await compressImage(file, 800, 0.65);
+
+      preview.src = compressedDataUrl;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+      applyLocalization(currentLangCode);
+
+      base64Image = compressedDataUrl.split(',')[1];
+    });
+
+    playAudioBtn.addEventListener('click', () => {
+      const t = I18N[currentLangCode] || I18N.ja;
+      if (!isHeadphoneConnected) return alert(t.hpNotice);
+      if (!('speechSynthesis' in window)) return alert('Web Speech API unsupported');
+
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        playAudioBtnText.innerText = t.playAudio;
+        return;
+      }
+
+      const title = document.getElementById('artTitle').innerText;
+      let textToRead = '';
+
+      if (summaryBlock.classList.contains('hidden')) {
+        const p1 = document.getElementById('focusPoint').innerText;
+        const p2 = document.getElementById('contextPoint').innerText;
+        const p3 = document.getElementById('contrastPoint').innerText;
+        textToRead = `${title}. ${p1}. ${p2}. ${p3}`;
+      } else {
+        const s = document.getElementById('summaryPoint').innerText;
+        textToRead = `${title}. ${s}`;
+      }
+      
+      const uttr = new SpeechSynthesisUtterance(textToRead);
+      const langVoiceMap = {
+        ja: 'ja-JP', en: 'en-US', fr: 'fr-FR', it: 'it-IT',
+        de: 'de-DE', es: 'es-ES', ru: 'ru-RU', zh: 'zh-CN'
+      };
+      uttr.lang = langVoiceMap[currentLangCode] || 'ja-JP';
+      uttr.rate = 1.05;
+
+      uttr.onend = () => { playAudioBtnText.innerText = t.playAudio; };
+      uttr.onerror = () => { playAudioBtnText.innerText = t.playAudio; };
+
+      window.speechSynthesis.speak(uttr);
+      playAudioBtnText.innerText = t.stopAudio;
+    });
+
+    selectTextBtn.addEventListener('click', () => {
+      const t = I18N[currentLangCode] || I18N.ja;
+      const range = document.createRange();
+      range.selectNodeContents(textContainer);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      selectTextBtnText.innerText = t.selected;
+      setTimeout(() => { selectTextBtnText.innerText = t.selectAll; }, 2000);
+    });
+
+    decodeBtn.addEventListener('click', async () => {
+      if (!base64Image) return alert('写真を選択してください');
+
+      const t = I18N[currentLangCode] || I18N.ja;
+      const museumName = museumInput.value.trim() || 'Museum';
+      const exhibitType = exhibitTypeSelect.value;
+      const specialExName = specialExNameInput.value.trim();
+      const exhibitLabel = exhibitType === '企画展' && specialExName ? `企画展「${specialExName}」` : exhibitType;
+
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      playAudioBtnText.innerText = t.playAudio;
+
+      decodeBtn.innerText = decodeMode === 'quick' ? t.decodingQuick : t.decodingDeep;
       decodeBtn.disabled = true;
 
-      const telemetry = {
-        dwellTimeMs: Date.now() - startTime,
-        connection: navigator.connection ? navigator.connection.effectiveType : 'unknown',
-        userAgent: navigator.userAgent
-      };
-      console.log('Telemetry Log:', telemetry);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/decode`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: base64Image,
+            museum: museumName,
+            exhibit: exhibitLabel,
+            langCode: currentLangCode,
+            langName: t.langName,
+            mode: decodeMode
+          })
+        });
 
-      setTimeout(() => {
-        document.getElementById('artTitle').innerText = '睡蓮の池（サンプルデコード）';
-        document.getElementById('artMeta').innerText = 'クロード・モネ / 1899年';
-        document.getElementById('focusPoint').innerText = '右上の筆致に注目。原色をパレットで混ぜずキャンバス上で直接重ねる視覚混合を採用。3m以上離れると光の反射として脳内結像する構造。';
-        document.getElementById('contextPoint').innerText = '白内障の進行初期。青・黄のコントラストを極端に強調し始めた過渡期の作品。視界の混濁を作風の解体へと昇華させている。';
-        document.getElementById('contrastPoint').innerText = 'ルノワールが人物の肌の血色に固執したのに対し、モネは固体の輪郭を完全に放棄し、水面に映る虚像のみを主役として固定化。';
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP ${response.status}`);
+        }
+
+        const res = await response.json();
+        currentArtworkId = res.artworkId;
+
+        // 端末内マイログへ保存
+        await dbPut('my_logs', {
+          artwork_id: res.artworkId,
+          lang_code: currentLangCode,
+          title: res.title,
+          meta: `${res.artist} / ${res.year_period}`,
+          museum: res.localized_museum,
+          voted: null,
+          timestamp: new Date().toISOString()
+        });
+
+        displayArtworkData(res);
+        resetThumbButtons(null);
 
         resultCard.classList.remove('hidden');
-        decodeBtn.innerText = '別の作品をデコードする';
-        decodeBtn.disabled = false;
+        if (isHeadphoneConnected) {
+          audioGuidePanel.classList.remove('hidden');
+          headphoneWarning.classList.add('hidden');
+        } else {
+          audioGuidePanel.classList.add('hidden');
+          headphoneWarning.classList.remove('hidden');
+        }
         resultCard.scrollIntoView({ behavior: 'smooth' });
-      }, 1000);
+
+      } catch (err) {
+        alert('解析エラー: ' + err.message);
+      } finally {
+        decodeBtn.innerText = decodeMode === 'quick' ? t.anotherQuick : t.anotherDeep;
+        decodeBtn.disabled = false;
+      }
     });
+
+    function displayArtworkData(data) {
+      cardMuseumTag.innerText = data.localized_museum || data.museum;
+      cardExhibitTag.innerText = data.localized_exhibit || data.exhibit;
+      cardLangTag.innerText = currentLangCode;
+      document.getElementById('artTitle').innerText = data.title;
+      document.getElementById('artMeta').innerText = data.meta || `${data.artist} / ${data.year_period}`;
+
+      if (data.mode === 'quick' || (!data.focus && data.summary_script)) {
+        summaryBlock.classList.remove('hidden');
+        detailBlock.classList.add('hidden');
+        summaryPoint.innerText = data.summary_script;
+      } else {
+        summaryBlock.classList.add('hidden');
+        detailBlock.classList.remove('hidden');
+        document.getElementById('focusPoint').innerText = data.focus;
+        document.getElementById('contextPoint').innerText = data.context;
+        document.getElementById('contrastPoint').innerText = data.contrast;
+      }
+    }
+
+    function resetThumbButtons(voted) {
+      thumbUpBtn.className = voted === 'up' ? 'p-1.5 rounded bg-emerald-500/20 text-emerald-400' : 'p-1.5 rounded hover:bg-slate-800 text-slate-400';
+      thumbDownBtn.className = voted === 'down' ? 'p-1.5 rounded bg-rose-500/20 text-rose-400' : 'p-1.5 rounded hover:bg-slate-800 text-slate-400';
+    }
+
+    thumbUpBtn.addEventListener('click', () => {
+      if (!currentArtworkId) return;
+      fetch(`${API_BASE_URL}/api/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artworkId: currentArtworkId, type: 'up' })
+      }).catch(() => {});
+      resetThumbButtons('up');
+    });
+
+    thumbDownBtn.addEventListener('click', () => {
+      if (!currentArtworkId) return;
+      fetch(`${API_BASE_URL}/api/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artworkId: currentArtworkId, type: 'down' })
+      }).catch(() => {});
+      resetThumbButtons('down');
+    });
+
+    // 館内作品（D1からテキスト魚拓取得）
+    async function renderMuseumArtworks() {
+      const list = document.getElementById('museumArtworkList');
+      const t = I18N[currentLangCode] || I18N.ja;
+      const currentMuseum = museumInput.value.trim();
+      document.getElementById('museumLangFilterBadge').innerText = `LANG: ${currentLangCode.toUpperCase()}`;
+      document.getElementById('museumFilterBadge').innerText = currentMuseum || t.allMuseums;
+
+      list.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">D1から読み込み中...</div>`;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/artworks?lang=${currentLangCode}`);
+        const artworks = await res.json();
+
+        if (!artworks || artworks.length === 0) {
+          list.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">【${currentLangCode.toUpperCase()}】の魚拓はまだありません。</div>`;
+          return;
+        }
+
+        list.innerHTML = artworks.map(art => {
+          return `
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:border-slate-700" onclick='loadArtworkData(${JSON.stringify(art).replace(/'/g, "&apos;")})'>
+              <div class="min-w-0 pr-2">
+                <span class="text-[10px] text-amber-400">${art.localized_museum || art.museum}</span>
+                <h3 class="text-sm font-bold text-white truncate">${art.title}</h3>
+                <p class="text-[11px] text-slate-400 truncate">${art.meta || art.artist}</p>
+              </div>
+              <span class="text-xs font-mono text-emerald-400 flex-shrink-0">👍 ${art.up_votes || 0}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="p-4 text-center text-xs text-rose-400 bg-slate-900 border border-slate-800 rounded-xl">取得失敗: ${err.message}</div>`;
+      }
+    }
+
+    // ランキング（D1から取得）
+    async function renderRanking() {
+      const list = document.getElementById('rankingList');
+      list.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">ランキング集計中...</div>`;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/artworks?lang=${currentLangCode}`);
+        const artworks = await res.json();
+
+        if (!artworks || artworks.length === 0) {
+          list.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">No ranking data.</div>`;
+          return;
+        }
+
+        list.innerHTML = artworks.map((art, idx) => {
+          return `
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-slate-700" onclick='loadArtworkData(${JSON.stringify(art).replace(/'/g, "&apos;")})'>
+              <span class="text-lg font-bold font-mono text-amber-400 w-5 text-center">${idx + 1}</span>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-bold text-white truncate">${art.title}</h3>
+                <p class="text-[11px] text-slate-400 truncate">${art.localized_museum || art.museum} / ${art.artist}</p>
+              </div>
+              <span class="text-xs font-mono font-bold text-emerald-400">+${art.up_votes || 0}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="p-4 text-center text-xs text-rose-400 bg-slate-900 border border-slate-800 rounded-xl">取得失敗</div>`;
+      }
+    }
+
+    // マイログ（端末内履歴）
+    async function renderMyLogs() {
+      const list = document.getElementById('myLogList');
+      const logs = await dbGetAll('my_logs');
+
+      document.getElementById('myLogCountBadge').innerText = `${logs.length} 作品`;
+
+      if (logs.length === 0) {
+        list.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">No logs.</div>`;
+        return;
+      }
+
+      list.innerHTML = logs.slice().reverse().map(log => {
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:border-slate-700">
+            <div class="min-w-0 pr-2">
+              <span class="text-[10px] text-slate-500">${log.museum} [${(log.lang_code || 'ja').toUpperCase()}]</span>
+              <h3 class="text-sm font-bold text-white truncate">${log.title || 'Artwork'}</h3>
+              <p class="text-[11px] text-slate-400 truncate">${log.meta || ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 魚拓・ランキングからの読み込み復元
+    window.loadArtworkData = function(data) {
+      currentArtworkId = data.id;
+
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      playAudioBtnText.innerText = I18N[currentLangCode]?.playAudio || 'Listen';
+
+      document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById('tab-scan').classList.remove('hidden');
+      document.querySelectorAll('.nav-tab').forEach(t => t.className = 'nav-tab flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200');
+      document.querySelector('.nav-tab[data-target="tab-scan"]').className = 'nav-tab flex flex-col items-center gap-0.5 text-amber-400 font-bold';
+
+      displayArtworkData(data);
+
+      resultCard.classList.remove('hidden');
+      if (isHeadphoneConnected) {
+        audioGuidePanel.classList.remove('hidden');
+        headphoneWarning.classList.add('hidden');
+      } else {
+        audioGuidePanel.classList.add('hidden');
+        headphoneWarning.classList.remove('hidden');
+      }
+      resultCard.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    applyLocalization('ja');
   </script>
 </body>
-
-
 </html>
-
